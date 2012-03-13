@@ -1,0 +1,92 @@
+<?php 
+session_start();
+echo'<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="../includes/SSfonts.css" />
+</head>
+<body>';
+require_once("../includes/sshdr.html");
+require_once("../includes/bsa-conn.php"); 
+require_once("../includes/functions.php");
+
+if (isset($_GET['cycle']))
+	$cycle = $_GET['cycle'];
+else
+	$cycle = NULL;
+
+if(isset($_GET['period'])) 
+	$period = $_GET['period'];
+else
+	$period = NULL;
+
+echo'<h1>AAGLTS Applications Received</h1>
+<h2>'.$period."for".$cycle.'</h2>
+<table>
+	<tr>
+		<th>Name</th>
+    <th>Country</th>
+    <th>Program</th>
+    <th>Program Option</th>
+    <th>Application Received</th>
+    <th>Status</th>
+</tr>';
+
+$query = "SELECT eap_ap.id AS eap_AP_Id, lastName, firstName, nickname, cycle, program, programOption, participationYear, country, dateAppReceived
+	FROM eap_ap, eapprogramoptions, countries_eapdesignated, aagltsscholarships
+	WHERE eapprogramoptions.id = eap_ap.eapProgramOptions_Id 
+	AND countries_eapdesignated.id = eapprogramoptions.countries_EAPDesignated_Id 
+	AND cycle = '" . $cycle . "' 
+	AND period = '" . $period . "'
+	AND eap_ap.id = aagltsscholarships.eap_AP_Id
+	ORDER BY lastName, firstName";
+	
+$result = mysql_query($query);
+if ($result) {
+	$num_rows = mysql_num_rows($result);
+} else {
+	$num_rows = 0;
+}
+
+
+for ($i = 0; $i < $num_rows; $i++) {
+	$row = mysql_fetch_array($result);
+	$eap_AP_Id = $row['eap_AP_Id'];
+	$lastName = displayText($row['lastName']);
+	$firstName = displayText($row['firstName']);	
+	$country = displayText($row['country']);
+	$program = displayText($row['program']);
+	$programOption = displayText($row['programOption']);
+	$dateAppReceived = displayDate($row['dateAppReceived']);
+					
+	$query2 = "SELECT status, statusGroup
+		  FROM eap_ap_eapstatuses, eapstatuses
+		  WHERE eap_AP_Id = " . $eap_AP_Id . "
+		  AND eapstatuses.id = eap_ap_eapstatuses.eapStatuses_Id
+		  ORDER BY effectiveDate DESC, sortOrder DESC
+		  LIMIT 1";
+			
+	$result2 = mysql_query($query2);
+	if($result2)
+	$num_rows2 = mysql_num_rows($result2);
+	else
+	$num_rows2 = 0;
+
+	for ($i2 = 0; $i2 < $num_rows2; $i2++) 
+	{
+		$row2 = mysql_fetch_array($result2);
+		$status = $row2['status'];
+	} //end for
+echo '<tr>	
+	<td>'.$lastName.",".$firstName.'</td>
+	<td>'.$country.'</td>     
+	<td>'.$program.'</td>
+	<td>'.$programOption.'</td>   
+	<td>'.$dateAppReceived.'</td>         
+	<td>'.$status.'</td>          
+</tr>';  
+}
+echo '</tr>
+</table>
+<p>Count: '.$num_rows.'</p>
+</body>
+</html>';
